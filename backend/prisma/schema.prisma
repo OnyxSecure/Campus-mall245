@@ -1,0 +1,213 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  BUYER
+  SELLER
+  ADMIN
+}
+
+enum SellerStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum ProductCategory {
+  PHONES
+  LAPTOPS
+  TABLETS
+  TEXTBOOKS
+  ELECTRONICS
+  FASHION
+  ACCESSORIES
+  HOSTEL_ESSENTIALS
+  OTHERS
+}
+
+enum ProductCondition {
+  NEW
+  FAIRLY_USED
+}
+
+enum TransactionStatus {
+  PENDING_PAYMENT
+  PAYMENT_SECURED
+  AWAITING_DELIVERY
+  DELIVERED
+  BUYER_CONFIRMED
+  ESCROW_RELEASED
+  DISPUTED
+  REFUNDED
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  REFUNDED
+}
+
+enum NotificationType {
+  REGISTRATION_APPROVAL
+  PRODUCT_PURCHASE
+  PAYMENT_RECEIVED
+  PRODUCT_DELIVERED
+  ESCROW_RELEASED
+  WITHDRAWAL_SUCCESS
+  DISPUTE_UPDATE
+  GENERAL
+}
+
+model User {
+  id                String        @id @default(cuid())
+  fullName          String
+  email             String        @unique
+  studentId         String        @unique
+  phone             String
+  password          String
+  role              Role          @default(BUYER)
+  emailVerified     Boolean       @default(false)
+  verificationToken String?
+  resetToken        String?
+  resetTokenExpiry  DateTime?
+  isSuspended       Boolean       @default(false)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  sellerProfile     SellerProfile?
+  products          Product[]
+  purchases         Transaction[] @relation("BuyerTransactions")
+  sales             Transaction[] @relation("SellerTransactions")
+  notifications     Notification[]
+  disputes          Dispute[]     @relation("DisputeBuyer")
+  disputeComments   DisputeComment[]
+}
+
+model SellerProfile {
+  id              String       @id @default(cuid())
+  userId          String       @unique
+  department      String
+  profilePhoto    String?
+  studentIdCard   String?
+  status          SellerStatus @default(PENDING)
+  rejectionReason String?
+  reviewedAt      DateTime?
+  reviewedBy      String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wallet          Wallet?
+}
+
+model Wallet {
+  id               String              @id @default(cuid())
+  sellerProfileId  String              @unique
+  availableBalance Float               @default(0)
+  pendingEscrow    Float               @default(0)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  sellerProfile    SellerProfile       @relation(fields: [sellerProfileId], references: [id], onDelete: Cascade)
+  transactions     WalletTransaction[]
+}
+
+model WalletTransaction {
+  id          String   @id @default(cuid())
+  walletId    String
+  amount      Float
+  type        String
+  description String
+  reference   String?
+  createdAt   DateTime @default(now())
+
+  wallet      Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+}
+
+model Product {
+  id          String           @id @default(cuid())
+  name        String
+  category    ProductCategory
+  description String
+  images      String[]
+  price       Float
+  condition   ProductCondition
+  sellerId    String
+  isActive    Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  seller      User             @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+}
+
+model Transaction {
+  id              String            @id @default(cuid())
+  productId       String
+  buyerId         String
+  sellerId        String
+  amount          Float
+  status          TransactionStatus @default(PENDING_PAYMENT)
+  paystackRef     String?           @unique
+  paystackAccessCode String?
+  deliveredAt     DateTime?
+  confirmedAt     DateTime?
+  releasedAt      DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  product         Product           @relation(fields: [productId], references: [id])
+  buyer           User              @relation("BuyerTransactions", fields: [buyerId], references: [id])
+  seller          User              @relation("SellerTransactions", fields: [sellerId], references: [id])
+  dispute         Dispute?
+}
+
+model Dispute {
+  id            String        @id @default(cuid())
+  transactionId String        @unique
+  buyerId       String
+  reason        String
+  status        DisputeStatus @default(OPEN)
+  evidence      String[]
+  resolution    String?
+  resolvedAt    DateTime?
+  resolvedBy    String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  transaction   Transaction   @relation(fields: [transactionId], references: [id])
+  buyer         User          @relation("DisputeBuyer", fields: [buyerId], references: [id])
+  comments      DisputeComment[]
+}
+
+model DisputeComment {
+  id        String   @id @default(cuid())
+  disputeId String
+  userId    String
+  content   String
+  createdAt DateTime @default(now())
+
+  dispute   Dispute  @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  isRead    Boolean          @default(false)
+  link      String?
+  createdAt DateTime         @default(now())
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
