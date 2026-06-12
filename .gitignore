@@ -5,3 +5,10 @@ dist/
 .env.local
 *.log
 .DS_Store
+
+
+node_modules/
+.env
+.next/
+dist/
+build/
