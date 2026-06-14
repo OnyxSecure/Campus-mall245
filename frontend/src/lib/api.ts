@@ -1,4 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'postgres-production-11e4.up.railway.app';
 
 function getToken(): string | null {
   if (typeof window === 'undefined') return null;
