@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { body, validationResult } from 'express-validator';
 import { prisma } from '../lib/prisma';
@@ -19,7 +19,7 @@ router.post(
     body('password').isLength({ min: 6 }),
     body('confirmPassword').custom((val, { req }) => val === req.body.password),
   ],
-  async (req, res) => {
+  async (req: Request, res: Response) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
@@ -69,7 +69,7 @@ router.post(
     body('password').isLength({ min: 6 }),
     body('confirmPassword').custom((val, { req }) => val === req.body.password),
   ],
-  async (req, res) => {
+  async (req: Request, res: Response) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
@@ -132,7 +132,7 @@ router.post(
 router.post(
   '/login',
   [body('email').isEmail().normalizeEmail(), body('password').notEmpty()],
-  async (req, res) => {
+  async (req: Request, res: Response) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
@@ -165,7 +165,7 @@ router.post(
   }
 );
 
-router.post('/forgot-password', [body('email').isEmail()], async (req, res) => {
+router.post('/forgot-password', [body('email').isEmail()], async (req: Request, res: Response) => {
   const { email } = req.body;
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) return res.json({ message: 'If that email exists, a reset link was sent' });
