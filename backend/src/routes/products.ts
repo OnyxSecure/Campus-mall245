@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Response } from 'express';
 import { body, query, validationResult } from 'express-validator';
 import { prisma } from '../lib/prisma';
 import { authenticate, authorize, requireApprovedSeller, AuthRequest } from '../middleware/auth';
@@ -121,7 +121,7 @@ router.post(
     body('price').isFloat({ min: 0 }),
     body('condition').isIn(['NEW', 'FAIRLY_USED']),
   ],
-  async (req: AuthRequest, res) => {
+  async (req: AuthRequest, res: Response) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
